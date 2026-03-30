@@ -1,0 +1,13 @@
+import gdown
+import os
+import zipfile
+if not os.path.exists('archive.zip'):
+    url = 'https://drive.google.com/uc?id=1-syYpYe-tcFoZ-mU0aMFn_CoiPaELqbm'
+    output_path = 'archive.zip'
+    gdown.download(url, output_path, quiet=False)
+    print(f"Файл скачан: {output_path}")
+
+with zipfile.ZipFile('archive.zip', 'r') as z_file:
+    z_file.extractall('data_test')
+    print('Файл успешно разархивирован')
+os.remove('archive.zip')
