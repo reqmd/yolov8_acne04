@@ -2,10 +2,56 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import shutil
 from PIL import Image
 import cv2 as cv
 import yaml
 import xml.etree.ElementTree as ET
+
+def yolo_to_bbox(yolo_coords, img_width, img_height):
+    """
+    Конвертирует YOLO формат в абсолютные координаты bounding box.
+    
+    Параметры:
+    yolo_coords: tuple или list (x_center, y_center, width_norm, height_norm)
+    img_width: ширина изображения в пикселях
+    img_height: высота изображения в пикселях
+    
+    Возвращает:
+    dict: {'xmin': int, 'ymin': int, 'xmax': int, 'ymax': int}
+    """
+    if hasattr(yolo_coords, 'values'):
+        x_center, y_center, w_norm, h_norm = yolo_coords.values
+    else:
+        x_center, y_center, w_norm, h_norm = yolo_coords
+    
+    # Конвертируем в числа (на всякий случай)
+    x_center = float(x_center)
+    y_center = float(y_center)
+    w_norm = float(w_norm)
+    h_norm = float(h_norm)
+    img_width = float(img_width)
+    img_height = float(img_height)
+    
+    # Конвертируем нормализованные координаты в абсолютные
+    x_center_abs = x_center * img_width
+    y_center_abs = y_center * img_height
+    w_abs = w_norm * img_width
+    h_abs = h_norm * img_height
+    
+    # Вычисляем xmin, ymin, xmax, ymax
+    xmin = int(x_center_abs - w_abs / 2)
+    ymin = int(y_center_abs - h_abs / 2)
+    xmax = int(x_center_abs + w_abs / 2)
+    ymax = int(y_center_abs + h_abs / 2)
+    
+    # Обрезаем до границ изображения
+    xmin = max(0, xmin)
+    ymin = max(0, ymin)
+    xmax = min(img_width, xmax)
+    ymax = min(img_height, ymax)
+    
+    return xmin, ymin, xmax, ymax
 
 #Пути данных
 DATA_PATH = 'data'
@@ -18,7 +64,7 @@ images_list = os.listdir(os.path.join(CLASSIFICATION_PATH, 'JPEGImages'))
 #Файл дополнительной разметки в формате словаря
 with open(os.path.join('data', 'acne04v2-main', 'Acne04-v2_annotations.json'), 'r') as file:
     y_file = yaml.safe_load(file)
-    print(type(y_file))
+    print(f'Файл дополнительной разметки успешно загружен')
 
 #Датафрейм с дополнительной разметкой 
 df = pd.DataFrame(y_file['annotations'])
@@ -31,7 +77,8 @@ threshhold = 0.5
 #Создание набора данных после фильтрации
 df_end = pd.DataFrame(columns=df.columns)
 for num in range(len(pd.unique(df['image_id']))):
-    print(f'Работа с изображением {num}')
+    if num % 250 == 0:
+        print(f'Работа с изображением {num}')
     img = Image.open(os.path.join(CLASSIFICATION_PATH, 'JPEGImages', df_images[df_images['id'] == num]['file_name'].values[0])).convert('RGB')
     img_arr = np.array(img)
     H, W, C = img_arr.shape
@@ -79,18 +126,22 @@ for num in range(len(pd.unique(df['image_id']))):
             num_add+=1
     #print(num_add, idx, n)
     idx+=len(df[df['image_id'] == num])
-    print(f'Было добавлено:{num_add} из {L}')
+    if num % 250 == 0:
+        print(f'Было добавлено:{num_add} из {L}')
+
+print(f'Итоговое количество объектов после фильтрации:{num_add} из {L}')
 
 #Создание первого csv файла с данными о изображениях
 col_list = ['id_images', 'filename', 'height', 'width']
 df_images = pd.DataFrame(columns=col_list)
-if not os.path.exists('data/csvs'):
-    os.mkdir('data/csvs')
+if not os.path.exists('data/Annotations'):
+    os.mkdir('data/Annotations')
 for i, image in enumerate(images_list):
     img = Image.open(os.path.join(CLASSIFICATION_PATH, 'JPEGImages', image)).convert('RGB')
     img_arr = np.array(img)
     H, W, _ = img_arr.shape
     df_images.loc[i] = pd.Series([i, image, H, W], index = df_images.columns)
+print('Файл .csv с разметкой изображений был успешно создан')
 
 #Создание первого датафрейма из оригинальной разметки
 annot_columns = ['id_images', 'xmin', 'xmax', 'ymin', 'ymax', 'annot_V']
@@ -112,6 +163,7 @@ for image in images_list:
             ymax = float(item.find('bndbox/ymax').text) 
             df_v1.loc[counter] = pd.Series([num.values[0], xmin, xmax, ymin, ymax, 'V1'], index = df_v1.columns)
             counter+=1
+print('Первый df для v1 был создан')
 
 #Создание второго датафрейма из дополнительной разметки
 df_images_v2 = pd.DataFrame(y_file['images'])
@@ -139,11 +191,35 @@ for name in df_images['filename']:
             ymax = float(coords[1] + radius) 
             df_v2.loc[c] = pd.Series([id_v1, xmin, xmax, ymin, ymax, 'V2'], index = df_v2.columns)
             c+=1
+print('Второй df для v2 был создан')
 
 #Слияние двух датафреймов в один и фильтрация от больших и отрицательных значений координат  
 df_FINAL = pd.concat((df_v1, df_v2))
 df_FINAL = df_FINAL[(df_FINAL['xmax'] < 7000) & (df_FINAL['xmin'] > 0)]
 df_sorted = df_FINAL.sort_values(by = 'id_images', )
+
+df_merged = df_sorted.merge(df_images[['id_images', 'height', 'width']], 
+                            on='id_images', 
+                            how='left')
+
+#Проверяем, что все объекты получили размеры
+if df_merged['width'].isna().sum() > 0:
+    print(f"Внимание: {df_merged['width'].isna().sum()} объектов без информации о размере!")
+    df_merged = df_merged.dropna(subset=['width', 'height'])
+
+#Нормализуем координаты (каждая строка использует свои width/height)
+df_merged['x_center'] = ((df_merged['xmin'] + df_merged['xmax']) / 2) / df_merged['width']
+df_merged['y_center'] = ((df_merged['ymin'] + df_merged['ymax']) / 2) / df_merged['height']
+df_merged['width_norm'] = (df_merged['xmax'] - df_merged['xmin']) / df_merged['width']
+df_merged['height_norm'] = (df_merged['ymax'] - df_merged['ymin']) / df_merged['height']
+
+#Обрезаем до [0, 1] на случай выхода за границы
+df_merged['x_center'] = df_merged['x_center'].clip(0, 1)
+df_merged['y_center'] = df_merged['y_center'].clip(0, 1)
+df_merged['width_norm'] = df_merged['width_norm'].clip(0, 1)
+df_merged['height_norm'] = df_merged['height_norm'].clip(0, 1)
+
+print('Файл совмещенной разметки был успешно собран')
 
 #Отображение изображения с разметкой 
 num = 1168
@@ -163,3 +239,15 @@ plt.figure(figsize=(12, 12))
 plt.axis('off')
 plt.imshow(img_arr)
 #Image.fromarray(img_arr).save('example.jpg')
+images_path = 'data/Annotations/images.csv'
+annot_path = 'data/Annotations/annot.csv'
+df_images.to_csv(images_path)
+df_merged.to_csv(annot_path)
+print(f'Файлы с разметками изображений и аннотаций были сохранены по путю {images_path}, {annot_path} соответственно')
+
+v1_path = 'data/Detection'
+v2_path = 'data/acne04v2-main'
+if os.path.exists(v1_path) and os.path.exists(v2_path):
+    shutil.rmtree(v1_path)
+    shutil.rmtree(v2_path)
+    print(f'Папки {v1_path} и {v2_path} были удалены')
