@@ -59,7 +59,7 @@ print(H_t, W_t)
 
 show_bboxes(num=num, img_arr=img_arr, df_annot=df_annot)
 show_bboxes(num=num, img_arr=img_rsz, df_annot=df_annot)
-draw_grid(img=img_rsz, grid_shape=(5, 5), thickness=2)
+draw_grid(img=img_rsz, grid_shape=(round_custom_decimal(H / target_size), round_custom_decimal(W / target_size)), thickness=2)
 plt.show()
 # cv.namedWindow('HUITA', cv.WINDOW_NORMAL)
 # cv.imshow('HUITA', img_rsz)
