@@ -18,13 +18,28 @@ def round_custom_decimal(x, threshold=0.6):
     else:
         return integer_part
 
+def draw_grid(img, grid_shape, color=(0, 255, 0), thickness=1):
+    h, w, _ = img.shape
+    rows, cols = grid_shape
+    dy, dx = h / rows, w / cols
+
+    # Рисуем вертикальные линии
+    for x in np.linspace(start=dx, stop=w - dx, num=cols - 1):
+        x = int(round(x))
+        cv.line(img, (x, 0), (x, h), color=color, thickness=thickness)
+
+    # Рисуем горизонтальные линии
+    for y in np.linspace(start=dy, stop=h - dy, num=rows - 1):
+        y = int(round(y))
+        cv.line(img, (0, y), (w, y), color=color, thickness=thickness)
+
 DATA_PATH = 'data'
 CLASSIFICATION_PATH = os.path.join(DATA_PATH, 'Classification', 'JPEGImages')
 ANNOT_PATH = os.path.join(DATA_PATH, 'Annotations')
 
 target_size = 640
 
-num = 0
+num = 1
 images_list = os.listdir(CLASSIFICATION_PATH)
 image = Image.open(os.path.join(CLASSIFICATION_PATH, images_list[num]))
 img_arr = np.array(image)
@@ -44,4 +59,10 @@ print(H_t, W_t)
 
 show_bboxes(num=num, img_arr=img_arr, df_annot=df_annot)
 show_bboxes(num=num, img_arr=img_rsz, df_annot=df_annot)
+draw_grid(img=img_rsz, grid_shape=(5, 5), thickness=2)
 plt.show()
+# cv.namedWindow('HUITA', cv.WINDOW_NORMAL)
+# cv.imshow('HUITA', img_rsz)
+# cv.waitKey(0)  # Ожидание нажатия любой клавиши
+# cv.destroyAllWindows()
+Image.fromarray(img_rsz).save('image.jpg')
