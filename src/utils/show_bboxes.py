@@ -62,7 +62,8 @@ def show_bboxes(num, img_arr, df_annot):
         h = float(row['height_norm'])
         w = float(row['width_norm'])
         xmin, ymin, xmax, ymax = yolo_to_bbox((x, y, w, h), img_height=H, img_width=W)
-        cv.rectangle(img_arr, (xmin, ymax), (xmax, ymin), (255, 0, 0), 2)
-    plt.figure(figsize=(12, 12))
-    plt.axis('off')
-    plt.imshow(img_arr)
+        cv.rectangle(img_arr, (int(xmin), int(ymax)), (int(xmax), int(ymin)), (0, 0, 255), 2)
+    # plt.figure(figsize=(12, 12))
+    # plt.axis('off')
+    # plt.imshow(img_arr)
+    return img_arr
