@@ -1,0 +1,15 @@
+albumentationsx==2.1.2
+cmake==4.3.0
+gdown==5.2.1
+matplotlib==3.10.8
+numpy==2.4.4
+opencv-python==4.13.0.92
+optuna==4.8.0
+pandas==3.0.2
+pillow==12.1.1
+PyYAML==6.0.3
+scikit-learn==1.8.0
+scipy==1.17.1
+sympy==1.14.0
+torch==2.11.0+cu126
+torchvision==0.26.0+cu126

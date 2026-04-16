@@ -1,7 +1,8 @@
-# Решение задачи нахождения акне на наборе данных ACNE04 с использованием дополнительной разметки с помощью Yolov8 и скользящего окна 
+# Solving the problem of finding acne on the ACNE04 dataset using additional labeling with Yolov8 and a sliding window
 
-## Ссылка на оригинальный набор данных ACNE04
-https://github.com/xpwu95/LDL
+### Links to sources
+![GitHub](https://github.com/xpwu95/LDL)
+![GitHub](https://github.com/AIpourlapeau/acne04v2)
 
-## Ссылка на репозиторий с дополнительной разметкой 
-https://github.com/AIpourlapeau/acne04v2
+### Install reqirements
+```pip3 install -r requirements.txt```
