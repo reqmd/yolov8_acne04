@@ -12,11 +12,13 @@ class ConvBlock(nn.Module):
                               padding=padding,
                               groups = groups,
                               dilation=dilation,
-                              bias=False),
-        self.bn = nn.BatchNorm2d(num_features=out_channels),
+                              bias=False)
+        self.bn = nn.BatchNorm2d(out_channels)
         self.act = nn.SiLU()
     def forward(self, X):
-        return self.act(self.bn(self.conv(X))) if self.need_act == True else self.bn(self.conv(X))
+        out = self.conv(X)
+        out = self.bn(out)
+        return self.act(out) if self.need_act else out
     
 class BottleNeck(nn.Module):
     def __init__(self, in_channels, out_channels, shortcut = False):
@@ -31,13 +33,13 @@ class BottleNeck(nn.Module):
         out = self.conv2(self.conv1(X))
         return residual + out if self.shortcut == True else out
         
-class SPPFBlock():
+class SPPFBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size = 5):
         super().__init__()
-        self.temp_channels = in_channels // 2
-        self.conv1 = ConvBlock(in_channels=in_channels, out_channels=self.temp_channels, kernel=(1, 1), stride = 1, padding=1)
+        self.hidden_channels = in_channels // 2
+        self.conv1 = ConvBlock(in_channels=in_channels, out_channels=self.hidden_channels, kernel=(1, 1), stride = 1, need_act=False)
         self.maxpool = nn.MaxPool2d(kernel_size=kernel_size, stride=1, padding= kernel_size // 2)
-        self.conv2 = ConvBlock(in_channels= self.temp_channels * 4, out_channels=out_channels, stride = 1, padding = 1)
+        self.conv2 = ConvBlock(in_channels= self.hidden_channels * 4, out_channels=out_channels, stride = 1)
 
     def forward(self, X):
         out = self.conv1(X)
@@ -47,14 +49,14 @@ class SPPFBlock():
         out = self.maxpool(out)
         stage3 = out
         out = self.maxpool(out)
-        concat = torch.cat([stage1, stage2, stage3, out], dim = 0)
+        concat = torch.cat([stage1, stage2, stage3, out], dim = 1)
         return self.conv2(concat)
     
-class C2fBlock():
+class C2fBlock(nn.Module):
     def __init__():
         return 0
     
-class DeteckBlock():
+class DeteckBlock(nn.Module):
     def __init__():
         return 0
 

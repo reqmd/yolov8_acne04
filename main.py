@@ -1,4 +1,8 @@
 from src.data.dataset import AcneDataset
+from src.model.blocks import ConvBlock, BottleNeck, SPPFBlock
 
-dataset = AcneDataset('data/Annotations/patches.csv', r'C:\Users\Куликов\yolov8_acne04\data\Patches', transform=True)
-print(dataset[0][1])
+import torch 
+from torchsummary import summary
+conv = SPPFBlock(in_channels=128, out_channels=128).to('cuda')
+
+print(summary(conv, (128, 80, 80)))

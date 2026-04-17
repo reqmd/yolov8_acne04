@@ -13,3 +13,4 @@ scipy==1.17.1
 sympy==1.14.0
 torch==2.11.0+cu126
 torchvision==0.26.0+cu126
+torchsummary==1.5.1
