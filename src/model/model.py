@@ -33,9 +33,12 @@ class YoloModel(nn.Module):
         for bb_part in self.model_config['backbone']:
             block_name, params = bb_part[1], bb_part[2].copy()
 
-            if params[0] != 3:  # не трогаем RGB вход
+            if params[0] != 3:
                 params[0] = self.scale_channels(params[0])
             params[1] = self.scale_channels(params[1])
+
+            if block_name == 'C2f':
+                params[2] = self.scale_depth(params[2])
 
             block = BUILD_DICT[block_name]
             layers.append(block(*params))
