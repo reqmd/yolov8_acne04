@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 
 class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride = 1, kernel = 1, padding = 0, groups = 1, dilation = 1, need_act = True):
+    def __init__(self, in_channels, out_channels, kernel = 1, stride = 1, padding = 0, groups = 1, dilation = 1, need_act = True):
         super().__init__()
         self.need_act = need_act
+        if stride == 2:
+            padding = 1
         self.conv = nn.Conv2d(in_channels=in_channels, 
                               out_channels=out_channels, 
                               stride=stride, 
@@ -53,14 +55,14 @@ class SPPFBlock(nn.Module):
         return self.conv2(concat)
     
 class C2fBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, n_bottlenecks):
+    def __init__(self, in_channels, out_channels, n_bottlenecks = 1, shortcut = False):
         super().__init__()
         self.hidden_channels = in_channels // 2
         self.conv1 = ConvBlock(in_channels=in_channels, out_channels=self.hidden_channels * 2, stride=1, kernel=1)
         self.conv2 = ConvBlock(in_channels=self.hidden_channels * (2 + n_bottlenecks), out_channels=out_channels, kernel=1, stride=1)
         self.bottlenecks = nn.ModuleList(BottleNeckBlock(in_channels=self.hidden_channels, 
                                                          out_channels=self.hidden_channels, 
-                                                         shortcut=True, expand_ratio=1) for _ in range(n_bottlenecks))
+                                                         shortcut=shortcut, expand_ratio=1) for _ in range(n_bottlenecks))
     def forward(self, X):
         out = self.conv1(X).split((self.hidden_channels, self.hidden_channels), dim=1)
         out = [out[0], out[1]]
