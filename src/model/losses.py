@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision.ops.ciou_loss import complete_box_iou_loss as ciou_loss
 
 def dfl_loss(pred, target, reg_max=16):
     N = pred.shape[0]
@@ -17,3 +18,11 @@ def dfl_loss(pred, target, reg_max=16):
         F.cross_entropy(pred, t_right, reduction='none') * w_right
     )
     return loss.mean()
+
+class LossFunction(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, pred, target):
+        loss = 1.5 * dfl_loss(pred, target) + 7.5 * ciou_loss(pred, target)
+        return loss.mean()

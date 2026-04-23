@@ -57,7 +57,7 @@ class SPPFBlock(nn.Module):
 class C2fBlock(nn.Module):
     def __init__(self, in_channels, out_channels, n_bottlenecks = 1, shortcut = False):
         super().__init__()
-        self.hidden_channels = in_channels // 2
+        self.hidden_channels = out_channels // 2
         self.conv1 = ConvBlock(in_channels=in_channels, out_channels=self.hidden_channels * 2, stride=1, kernel=1)
         self.conv2 = ConvBlock(in_channels=self.hidden_channels * (2 + n_bottlenecks), out_channels=out_channels, kernel=1, stride=1)
         self.bottlenecks = nn.ModuleList(BottleNeckBlock(in_channels=self.hidden_channels, 
@@ -71,26 +71,27 @@ class C2fBlock(nn.Module):
         return self.conv2(out)
     
 class BoxBranch(nn.Module):
-    def __init__(self, in_channels, reg_max = 16):
+    def __init__(self, in_channels, reg_max=16):
         super().__init__()
-        self.hidden_channels = max(in_channels, 4 * reg_max)
+        self.hidden_channels = max(16, in_channels // 4, reg_max)
         self.conv = nn.Sequential(
-            ConvBlock(in_channels=in_channels, out_channels=self.hidden_channels, kernel=3, stride = 1, padding = 1),
-            ConvBlock(in_channels=self.hidden_channels, out_channels=self.hidden_channels, kernel = 3, stride = 1, padding = 1),
-            nn.Conv2d(in_channels=self.hidden_channels, out_channels= 4 * reg_max, kernel_size=1)
+            ConvBlock(in_channels, self.hidden_channels, kernel=3, stride=1, padding=1),
+            ConvBlock(self.hidden_channels, self.hidden_channels, kernel=3, stride=1, padding=1),
+            nn.Conv2d(self.hidden_channels, 4 * reg_max, kernel_size=1)
         )
     def forward(self, X):
         return self.conv(X)
     
 class ClsBranch(nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, in_channels, nc=1):
         super().__init__()
-        self.hidden_channels = max(in_channels, 32)
+        self.hidden_channels = max(in_channels // 4, nc, 16)
         self.conv = nn.Sequential(
-            ConvBlock(in_channels=in_channels, out_channels=self.hidden_channels, kernel=3, stride = 1, padding = 1),
-            ConvBlock(in_channels=self.hidden_channels, out_channels=self.hidden_channels, kernel = 3, stride = 1, padding = 1),
-            nn.Conv2d(in_channels=self.hidden_channels, out_channels= 1, kernel_size=1)
+            ConvBlock(in_channels, self.hidden_channels, kernel=3, stride=1, padding=1),
+            ConvBlock(self.hidden_channels, self.hidden_channels, kernel=3, stride=1, padding=1),
+            nn.Conv2d(self.hidden_channels, nc, kernel_size=1)
         )
+
     def forward(self, X):
         return self.conv(X)
     
@@ -111,7 +112,7 @@ class DFLConvert(nn.Module):
         x = self.conv(x.permute(0, 1, 3, 2).reshape(B * 4, self.reg_max, A, 1))
         return x.reshape(B, 4, A)  
     
-class DeteckBlock(nn.Module):
+class DetectBlock(nn.Module):
     def __init__(self, in_channels, reg_max = 16):
         super().__init__()
         self.reg_max = reg_max
@@ -129,4 +130,14 @@ class DeteckBlock(nn.Module):
             box = self.dfl(box)
             cls = cls.sigmoid()
         return box, cls
+    
+class DetectHead(nn.Module):
+    def __init__(self, in_channels_list, reg_max = 16):
+        super().__init__()
+        self.heads = nn.ModuleList([DetectBlock(in_channels=in_channels) for in_channels in in_channels_list])
 
+    def forward(self, features, inference=False):
+        outputs = []
+        for head, feat in zip(self.heads, features):
+            outputs.append(head(feat, inference))
+        return outputs

@@ -36,18 +36,28 @@ class AcneDataset(Dataset):
         if self.transform != None:
             self.transform = return_transforms()
             transformed = self.transform(image = img_arr, bboxes = boxes, labels = labels)
-        image, boxes, labels = transformed['image'] / 255, transformed['bboxes'], transformed['labels']
+            image, boxes, labels = transformed['image'], transformed['bboxes'], transformed['labels']
+        image = torch.tensor(np.array(image), dtype=torch.float32) / 255.0
         #print(image)
         #print(boxes)
         #print(labels)
         if len(boxes) > 0 and len(labels) > 0:
             boxes = torch.tensor(boxes, dtype=torch.float32) 
             labels = torch.tensor(labels, dtype=torch.int8) 
+            targets = torch.zeros((len(boxes), 6))
+            targets[:, 0] = 0         # batch_idx — заполнится в collate_fn
+            targets[:, 1] = labels    # класс
+            targets[:, 2:] = boxes    # координаты xywh
         else:
-            boxes = torch.zeros([0, 4], dtype=torch.float32) 
-            labels = torch.tensor([], dtype=torch.int8)
-        targets = {
-                    'boxes': boxes,      # Формат: (N, 4) [x_center, y_center, width, height] в [0, 1]
-                    'labels': labels     # Формат: (N,) [class_id1, class_id2, ...]
-                }
+            targets = torch.zeros((0, 6))
         return image, targets
+    
+def collate_fn(batch):
+    images, targets = zip(*batch)
+    for i, t in enumerate(targets):
+        t[:, 0] = i
+
+    images  = torch.stack(images, dim=0)       # (B, 3, H, W)
+    targets = torch.cat(targets, dim=0)        # (N, 6)
+
+    return images, targets
