@@ -6,10 +6,12 @@ import cv2 as cv
 from PIL import Image
 import os
 from decimal import Decimal
-from multiprocessing import Pool, cpu_count
-from functools import partial
+from sklearn.model_selection import train_test_split
 
 #from utils.show_bboxes import show_bboxes
+
+TRAIN_RATIO = 0.8
+RANDOM_STATE = 101
 
 def round_custom_decimal(x, threshold=0.5):
     x_dec = Decimal(str(x))
@@ -86,19 +88,17 @@ for num in range(len(images_list)):
                         g_c+=1
                 Image.fromarray(img_rsz[h:h+target_size, w:w+target_size]).save(os.path.join('data/Patches', f'{image_name}-{c}.jpg'))
                 c+=1
-df_patches.to_csv(os.path.join(ANNOT_PATH, 'patches.csv'))
+df_patches.to_csv(os.path.join(ANNOT_PATH, 'patches.csv'), index=False)
 
-
-
-
-
-
-
-
-
-
-#with open('data/images_list.yaml') as f:
-#    data = yaml.safe_load(f)
-#print(f'Количество больших изображений:', len(data['huge']))
-#print(f'Количество нормальных изображений:', len(data['normal']))
-#print(f'Количество маленьких изображений:', len(data['small']))
+unique_images = df_patches['filename'].unique()
+train_images, val_images = train_test_split(
+    unique_images,
+    train_size=TRAIN_RATIO,
+    random_state=RANDOM_STATE
+)
+train_df = df_patches[df_patches['filename'].isin(train_images)]
+val_df   = df_patches[df_patches['filename'].isin(val_images)]
+train_df.to_csv(os.path.join(ANNOT_PATH, 'train.csv'), index=False)
+val_df.to_csv(os.path.join(ANNOT_PATH, 'val.csv'),   index=False)
+print(f'Train: {len(train_images)} изображений')
+print(f'Val:   {len(val_images)} изображений')
