@@ -84,8 +84,8 @@ for epoch in range(epochs):
     print(f'DFL Loss {nn.mean(dfl_loss):.4f}')
     print(f'CLS Loss {nn.mean(cls_loss):.4f}')
     print(f'Total Loss {nn.mean(total_loss):.4f}')
-    sec = (end_time - start_time) // 60
-    min = (end_time - start_time) % 60
-    print(f'Время выполнения: {min} минут {sec}')
+    min = (end_time - start_time) // 60
+    sec = round((end_time - start_time) % 60)
+    print(f'Время выполнения: {min} минут {sec} секунд')
     print('//////////////////////////////////////////////////////////')
         
