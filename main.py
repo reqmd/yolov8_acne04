@@ -10,6 +10,7 @@ from src.model.losses import LossFunction
 import torch
 import numpy as nn
 from torch.utils.data import DataLoader
+import time
 
 #show_model_info(mod='s')
 train_data = AcneDataset('data/Annotations/train.csv', train=True)
@@ -35,6 +36,7 @@ ciou_loss = []
 
 epochs = 25
 for epoch in range(epochs):
+    start_time = time.time()
     for images, targets in train_loader:
         #print(images.shape)
         #print(targets.shape)
@@ -75,11 +77,15 @@ for epoch in range(epochs):
         dfl_loss.append(loss_dict['dfl'])
         ciou_loss.append(loss_dict['ciou'])
         total_loss.append(loss.item())
+    end_time = time.time()
     print('//////////////////////////////////////////////////////////')
     print(f'Epoch {epoch+1} / {epochs}')
     print(f'CIOU Loss {nn.mean(ciou_loss):.4f}')
     print(f'DFL Loss {nn.mean(dfl_loss):.4f}')
     print(f'CLS Loss {nn.mean(cls_loss):.4f}')
     print(f'Total Loss {nn.mean(total_loss):.4f}')
+    sec = (end_time - start_time) // 60
+    min = (end_time - start_time) % 60
+    print(f'Время выполнения: {min} минут {sec}')
     print('//////////////////////////////////////////////////////////')
         
