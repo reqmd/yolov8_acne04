@@ -13,8 +13,8 @@ from tqdm import tqdm
 train_data = AcneDataset('data/Annotations/train.csv', train=True)
 val_data = AcneDataset('data/Annotations/val.csv', train=False)
 
-train_loader = DataLoader(dataset=train_data, batch_size=4, shuffle=True, collate_fn=collate_fn)
-val_loader = DataLoader(dataset=val_data, batch_size=4, shuffle=False, collate_fn=collate_fn)
+train_loader = DataLoader(dataset=train_data, batch_size=2, shuffle=True, collate_fn=collate_fn)
+val_loader = DataLoader(dataset=val_data, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
 device = 'cuda'
 model = YoloModel(mod='m').to(device)

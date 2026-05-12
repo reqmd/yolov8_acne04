@@ -14,7 +14,7 @@ BUILD_DICT = {
 NO_SCALE_BLOCKS = {'nn.Upsample', 'DetectHead', 'Concat'}
 
 class YoloModel(nn.Module):
-    def __init__(self, mod = None, nc = 1, path = r'C:\Users\Куликов\yolov8_acne04\config\model.yaml'):
+    def __init__(self, mod = None, nc = 1, path = 'config/model.yaml'):
         super().__init__()
         with open(path) as file:
             self.model_config = yaml.safe_load(file)
