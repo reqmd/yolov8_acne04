@@ -46,6 +46,11 @@ class LossFunction(nn.Module):
         anchor_points:  (N, 2)
         stride_tensor:  (N, 1)
         """
+        dtype = pred_cls.dtype
+
+        matched_boxes  = matched_boxes.to(dtype)
+        matched_scores = matched_scores.to(dtype)
+        
         n_pos = positive_mask.sum().clamp(min=1)  # число позитивных ячеек
 
         # ── CIoU Loss — только позитивные ячейки ─────────────────
