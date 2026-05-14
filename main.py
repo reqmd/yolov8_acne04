@@ -105,19 +105,21 @@ if __name__ == '__main__':
     #show_model_info(mod='s')
     train_data = AcneDataset('data/Annotations/train.csv', train=True)
     val_data = AcneDataset('data/Annotations/val.csv', train=False)
-
+    epochs = 25
     train_loader = DataLoader(dataset=train_data, batch_size=4, shuffle=True, collate_fn=collate_fn, num_workers=4, pin_memory=True, persistent_workers=True)
     val_loader = DataLoader(dataset=val_data, batch_size=4, shuffle=False, collate_fn=collate_fn, num_workers=4, pin_memory=True, persistent_workers=True)
 
     device = 'cuda'
-    model = YoloModel(mod='m').to(device)
+    model = YoloModel(mod='n').to(device)
     #model = torch.compile(model)
     scaler = GradScaler()
     anchor_points, stride_tensor = make_anchors(img_size=1280)
     anchor_points = anchor_points.to(device)
     stride_tensor = stride_tensor.to(device)
     criterion = LossFunction().to(device)
-    optim = torch.optim.AdamW(params=model.parameters(), lr=0.001, weight_decay=0.0005)
+    optim = torch.optim.AdamW(params=model.parameters(), lr=0.002, weight_decay=0.0005)
+
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=epochs, eta_min=1e-6)
 
     # История лоссов раздельно для train и val
     history = {
@@ -125,7 +127,7 @@ if __name__ == '__main__':
         'val':   {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
     }
 
-    epochs = 25
+    
     for epoch in range(epochs):
         start_time = time.time()
 
@@ -156,6 +158,8 @@ if __name__ == '__main__':
                 )
 
             scaler.scale(loss).backward()
+            scaler.unscale_(optim) 
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
             scaler.step(optim)
             scaler.update()
 
@@ -210,8 +214,13 @@ if __name__ == '__main__':
         print(f'{"DFL":10} {history["train"]["dfl"][-1]:>10.4f} ') # {history["val"]["dfl"][-1]:>10.4f}
         print(f'{"CLS":10} {history["train"]["cls"][-1]:>10.4f} ') # {history["val"]["cls"][-1]:>10.4f}
         print('=' * 60)
+        scheduler.step()
 
-        if (epoch + 1) % 5 == 0:  
+        # Логируем текущий lr
+        current_lr = scheduler.get_last_lr()[0]
+        print(f'LR: {current_lr:.8f}')
+
+        if (epoch + 1) % 3 == 0:  
             map_result = evaluate(
                 model, val_loader,
                 anchor_points, stride_tensor

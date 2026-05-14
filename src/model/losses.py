@@ -86,12 +86,12 @@ class LossFunction(nn.Module):
         # Взвешиваем на matched_scores чтобы лучшие совпадения важнее
         cls_target = torch.zeros_like(pred_cls[:, 0, :])  # (B, N)
         cls_target[positive_mask] = matched_scores[positive_mask]
-
-        loss_cls = F.binary_cross_entropy_with_logits(
-            pred_cls[:, 0, :],   # (B, N)
-            cls_target,          # (B, N)
-            reduction='mean'
-        ) / n_pos
+        with torch.amp.autocast('cuda', enabled=False):
+            loss_cls = F.binary_cross_entropy_with_logits(
+                pred_cls[:, 0, :].float(),   # (B, N)
+                cls_target.float(),          # (B, N)
+                reduction='mean'
+            ) / n_pos
 
         # ── Итоговый loss ─────────────────────────────────────────
         total_loss = (
