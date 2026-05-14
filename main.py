@@ -165,38 +165,38 @@ if __name__ == '__main__':
             train_losses['cls'].append(loss_dict['cls'])
 
         # ── Validation ────────────────────────────────────────────
-        model.eval()
-        val_losses = {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
+        # model.eval()
+        # val_losses = {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
         
-        val_bar = tqdm(val_loader, desc=f'Epoch {epoch+1}/{epochs} [Val]  ')
-        with torch.no_grad():
-            for images, targets in val_bar:
-                images  = images.to(device)
-                targets = targets.to(device)
+        # val_bar = tqdm(val_loader, desc=f'Epoch {epoch+1}/{epochs} [Val]  ')
+        # with torch.no_grad():
+        #     for images, targets in val_bar:
+        #         images  = images.to(device)
+        #         targets = targets.to(device)
 
-                outputs = model(images)
-                pred_boxes, pred_cls, pred_dist = decode_predictions(
-                    outputs, anchor_points, stride_tensor
-                )
-                positive_mask, matched_boxes, matched_scores = tal_matcher(
-                    pred_boxes, pred_cls, targets,
-                    anchor_points, stride_tensor, img_size=1280
-                )
-                loss, loss_dict = criterion(
-                    pred_boxes, pred_dist, pred_cls,
-                    positive_mask, matched_boxes, matched_scores,
-                    anchor_points, stride_tensor
-                )
+        #         outputs = model(images)
+        #         pred_boxes, pred_cls, pred_dist = decode_predictions(
+        #             outputs, anchor_points, stride_tensor
+        #         )
+        #         positive_mask, matched_boxes, matched_scores = tal_matcher(
+        #             pred_boxes, pred_cls, targets,
+        #             anchor_points, stride_tensor, img_size=1280
+        #         )
+        #         loss, loss_dict = criterion(
+        #             pred_boxes, pred_dist, pred_cls,
+        #             positive_mask, matched_boxes, matched_scores,
+        #             anchor_points, stride_tensor
+        #         )
 
-                val_losses['total'].append(loss.item())
-                val_losses['ciou'].append(loss_dict['ciou'])
-                val_losses['dfl'].append(loss_dict['dfl'])
-                val_losses['cls'].append(loss_dict['cls'])
+        #         val_losses['total'].append(loss.item())
+        #         val_losses['ciou'].append(loss_dict['ciou'])
+        #         val_losses['dfl'].append(loss_dict['dfl'])
+        #         val_losses['cls'].append(loss_dict['cls'])
 
         # ── Логирование ───────────────────────────────────────────
         for key in ['total', 'ciou', 'dfl', 'cls']:
             history['train'][key].append(torch.tensor(train_losses[key]).mean().item())
-            history['val'][key].append(torch.tensor(val_losses[key]).mean().item())
+            #history['val'][key].append(torch.tensor(val_losses[key]).mean().item())
 
         end_time = time.time()
         mins = int((end_time - start_time) // 60)
@@ -204,14 +204,14 @@ if __name__ == '__main__':
 
         print('=' * 60)
         print(f'Epoch {epoch+1}/{epochs}  |  {mins}м {secs}с')
-        print(f'{"":10} {"Train":>10} {"Val":>10}')
-        print(f'{"Total":10} {history["train"]["total"][-1]:>10.4f} {history["val"]["total"][-1]:>10.4f}')
-        print(f'{"CIoU":10} {history["train"]["ciou"][-1]:>10.4f} {history["val"]["ciou"][-1]:>10.4f}')
-        print(f'{"DFL":10} {history["train"]["dfl"][-1]:>10.4f} {history["val"]["dfl"][-1]:>10.4f}')
-        print(f'{"CLS":10} {history["train"]["cls"][-1]:>10.4f} {history["val"]["cls"][-1]:>10.4f}')
+        print(f'{"":10} {"Train":>10} ') # {"Val":>10}
+        print(f'{"Total":10} {history["train"]["total"][-1]:>10.4f} ') # {history["val"]["total"][-1]:>10.4f}
+        print(f'{"CIoU":10} {history["train"]["ciou"][-1]:>10.4f} ') # {history["val"]["ciou"][-1]:>10.4f}
+        print(f'{"DFL":10} {history["train"]["dfl"][-1]:>10.4f} ') # {history["val"]["dfl"][-1]:>10.4f}
+        print(f'{"CLS":10} {history["train"]["cls"][-1]:>10.4f} ') # {history["val"]["cls"][-1]:>10.4f}
         print('=' * 60)
 
-        if (epoch + 1) % 3 == 0:  
+        if (epoch + 1) % 5 == 0:  
             map_result = evaluate(
                 model, val_loader,
                 anchor_points, stride_tensor
