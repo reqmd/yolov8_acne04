@@ -5,6 +5,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.ops.ciou_loss import complete_box_iou_loss as ciou_loss
 
+if torch.cuda.is_available(): 
+    device = 'cuda'
+else:
+    device = 'cpu'
+
 def dfl_loss(pred, target, reg_max=16):
     """
     pred:   (M, 64) — сырые логиты позитивных ячеек
@@ -34,66 +39,44 @@ class LossFunction(nn.Module):
         self.lambda_cls  = lambda_cls
 
     def forward(self, pred_boxes, pred_dist, pred_cls,
-                positive_mask, matched_boxes, matched_scores,
-                anchor_points, stride_tensor):
-        """
-        pred_boxes:     (B, N, 4)  декодированные боксы в пикселях
-        pred_dist:      (B, 64, N) сырые логиты DFL
-        pred_cls:       (B, 1, N)  сырые логиты objectness
-        positive_mask:  (B, N)     маска позитивных ячеек
-        matched_boxes:  (B, N, 4)  GT боксы в пикселях
-        matched_scores: (B, N)     IoU качество совпадения
-        anchor_points:  (N, 2)
-        stride_tensor:  (N, 1)
-        """
-        dtype = pred_cls.dtype
+            positive_mask, matched_boxes, matched_scores,
+            anchor_points, stride_tensor):
 
-        matched_boxes  = matched_boxes.to(dtype)
-        matched_scores = matched_scores.to(dtype)
-        
-        n_pos = positive_mask.sum().clamp(min=1)  # число позитивных ячеек
+        n_pos = positive_mask.sum().clamp(min=1)
+        device = pred_boxes.device
 
-        # ── CIoU Loss — только позитивные ячейки ─────────────────
-        pred_boxes_pos   = pred_boxes[positive_mask]    # (M, 4)
-        matched_boxes_pos = matched_boxes[positive_mask] # (M, 4)
-
-        if pred_boxes_pos.shape[0] > 0:
-            loss_ciou = ciou_loss(
-                pred_boxes_pos,
-                matched_boxes_pos,
-                reduction='mean'
-            )
+        # ── CIoU Loss ─────────────────────────────────────────
+        if n_pos > 0 and positive_mask.any():
+            pred_boxes_pos    = pred_boxes[positive_mask]
+            matched_boxes_pos = matched_boxes[positive_mask]
+            loss_ciou = ciou_loss(pred_boxes_pos, matched_boxes_pos, reduction='mean')
         else:
-            loss_ciou = torch.tensor(0.0, device=pred_boxes.device)
+            loss_ciou = torch.tensor(0.0, device=device)
 
-        # ── DFL Loss — только позитивные ячейки ──────────────────
-        # Конвертируем GT боксы в расстояния для DFL
-        target_dist = bbox2dist(
-            matched_boxes, anchor_points, stride_tensor
-        )  # (B, N, 4)
-
-        # pred_dist: (B, 64, N) → (B, N, 64)
-        pred_dist_pos   = pred_dist.permute(0, 2, 1)[positive_mask]   # (M, 64)
-        target_dist_pos = target_dist[positive_mask]                   # (M, 4)
-
-        if pred_dist_pos.shape[0] > 0:
+        # ── DFL Loss ──────────────────────────────────────────
+        if n_pos > 0 and positive_mask.any():
+            target_dist = bbox2dist(matched_boxes, anchor_points, stride_tensor)
+            pred_dist_pos   = pred_dist.permute(0, 2, 1)[positive_mask]
+            target_dist_pos = target_dist[positive_mask]
             loss_dfl = dfl_loss(pred_dist_pos, target_dist_pos)
         else:
-            loss_dfl = torch.tensor(0.0, device=pred_boxes.device)
+            loss_dfl = torch.tensor(0.0, device=device)
 
-        # ── BCE Loss — все ячейки ─────────────────────────────────
-        # Цель: позитивные=1, негативные=0
-        # Взвешиваем на matched_scores чтобы лучшие совпадения важнее
-        cls_target = torch.zeros_like(pred_cls[:, 0, :])  # (B, N)
-        cls_target[positive_mask] = matched_scores[positive_mask]
-        with torch.amp.autocast('cuda', enabled=False):
+        # ── CLS Loss ──────────────────────────────────────────
+        with torch.amp.autocast(device_type='cuda'):
+            cls_target = torch.zeros_like(pred_cls[:, 0, :], dtype=torch.float32)
+            if positive_mask.any():
+                cls_target[positive_mask] = matched_scores[positive_mask].float()
             loss_cls = F.binary_cross_entropy_with_logits(
-                pred_cls[:, 0, :].float(),   # (B, N)
-                cls_target.float(),          # (B, N)
+                pred_cls[:, 0, :].float(),
+                cls_target,
                 reduction='mean'
-            ) / n_pos
+            )
 
-        # ── Итоговый loss ─────────────────────────────────────────
+        # ── Проверка на NaN ──────────────────────────────────
+        if torch.isnan(loss_cls):
+            loss_cls = torch.tensor(0.0, device=device)
+
         total_loss = (
             self.lambda_ciou * loss_ciou +
             self.lambda_dfl  * loss_dfl  +
