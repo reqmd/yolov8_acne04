@@ -41,7 +41,7 @@ stride_tensor = stride_tensor.to(device)
 criterion = LossFunction().to(device)
 
 optim = torch.optim.AdamW(params=model.parameters(), lr=lr, weight_decay=weight_decay)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=epochs, eta_min=1e-6)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_max=epochs, eta_min=1e-6)
 
 # История лоссов раздельно для train и val
 history = {
