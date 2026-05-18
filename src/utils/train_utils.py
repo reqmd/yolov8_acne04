@@ -4,6 +4,7 @@ from torchmetrics.detection.mean_ap import MeanAveragePrecision
 from tqdm import tqdm
 from src.utils.data_utils import decode_predictions, xywh2xyxy
 import yaml
+import matplotlib.pyplot as plt
 
 if torch.cuda.is_available(): 
     device = 'cuda'
@@ -113,3 +114,32 @@ def load_params(yaml_root):
     mod = data['mod']
     device = data['device']
     return epochs, batch_size, lr, weight_decay, num_workers, pin_memory, persistent_workers, mod, device
+
+def plot_losses(history, save_path='losses.png'):
+    epochs = range(1, len(history['train']['total']) + 1)
+    fig, axes = plt.subplots(1, 3, figsize=(21, 7))
+
+    # Total Loss
+    axes[0].plot(epochs, history['train']['total'], label='Train')
+    axes[0].set_title('Total Loss')
+    axes[0].set_xlabel('Epoch')
+    axes[0].legend()
+    axes[0].grid(True)
+
+    # CIoU Loss
+    axes[1].plot(epochs, history['train']['ciou'], label='Train')
+    axes[1].set_title('CIoU Loss')
+    axes[1].set_xlabel('Epoch')
+    axes[1].legend()
+    axes[1].grid(True)
+
+    # DFL Loss
+    axes[2].plot(epochs, history['train']['dfl'], label='Train')
+    axes[2].set_title('DFL Loss')
+    axes[2].set_xlabel('Epoch')
+    axes[2].legend()
+    axes[2].grid(True)
+
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.show()

@@ -2,13 +2,14 @@ from src.data.dataset import AcneDataset, collate_fn
 from src.model.model import YoloModel
 from src.utils.data_utils import make_anchors, decode_predictions, tal_matcher
 from src.model.losses import LossFunction
-from src.utils.train_utils import evaluate, load_params
+from src.utils.train_utils import evaluate, load_params, plot_losses
 
 import torch
 from torch.utils.data import DataLoader
 from torch.amp import autocast, GradScaler
 import time
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 #show_model_info(mod='s')
 YAML_ROOT = 'config/preprocessing.yaml'
@@ -148,7 +149,7 @@ for epoch in range(epochs):
         )
         print(f'mAP@50:    {map_result["map_50"]:.4f}')
         print(f'mAP@50-95: {map_result["map"]:.4f}')
-
+plot_losses(history=history)
 # ── Сохранение модели ──────────────────────────────────────────
 model_name = f'checkpoint_{mod}.pth'
 print('End train')
