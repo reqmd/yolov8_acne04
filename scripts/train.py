@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torch.amp import autocast, GradScaler
 import time
 from tqdm import tqdm
-import matplotlib.pyplot as plt
+from datetime import datetime
 
 #show_model_info(mod='s')
 YAML_ROOT = 'config/preprocessing.yaml'
@@ -39,16 +39,18 @@ scaler = GradScaler()
 anchor_points, stride_tensor = make_anchors(img_size=1280)
 anchor_points = anchor_points.to(device)
 stride_tensor = stride_tensor.to(device)
-criterion = LossFunction().to(device)
+criterion = LossFunction(lambda_ciou=7.5, lambda_dfl=1.5, lambda_cls=1.5).to(device)
 
 optim = torch.optim.AdamW(params=model.parameters(), lr=lr, weight_decay=weight_decay)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, eta_min=1e-5, T_0=10)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, eta_min=1e-6, T_max=epochs)
 
 # История лоссов раздельно для train и val
 history = {
     'train': {'total': [], 'ciou': [], 'dfl': [], 'cls': []},
     'val':   {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
 }
+
+accumulation_steps = 4
 
 for epoch in range(epochs):
     start_time = time.time()
@@ -58,11 +60,9 @@ for epoch in range(epochs):
     train_losses = {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
 
     train_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{epochs} [Train]')
-    for images, targets in train_bar:
+    for i, (images, targets) in enumerate(train_bar):
         images  = images.to(device)
         targets = targets.to(device)
-
-        optim.zero_grad()
 
         with autocast(device_type=device):
             outputs = model(images)
@@ -78,46 +78,21 @@ for epoch in range(epochs):
                 positive_mask, matched_boxes, matched_scores,
                 anchor_points, stride_tensor
             )
+            loss = loss / accumulation_steps
 
         scaler.scale(loss).backward()
-        scaler.unscale_(optim) 
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
-        scaler.step(optim)
-        scaler.update()
+
+        if (i + 1) % accumulation_steps == 0:
+            scaler.unscale_(optim)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
+            scaler.step(optim)
+            scaler.update()
+            optim.zero_grad()
 
         train_losses['total'].append(loss.item())
         train_losses['ciou'].append(loss_dict['ciou'])
         train_losses['dfl'].append(loss_dict['dfl'])
         train_losses['cls'].append(loss_dict['cls'])
-
-    # ── Validation ────────────────────────────────────────────
-    # model.eval()
-    # val_losses = {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
-    
-    # val_bar = tqdm(val_loader, desc=f'Epoch {epoch+1}/{epochs} [Val]  ')
-    # with torch.no_grad():
-    #     for images, targets in val_bar:
-    #         images  = images.to(device)
-    #         targets = targets.to(device)
-
-    #         outputs = model(images)
-    #         pred_boxes, pred_cls, pred_dist = decode_predictions(
-    #             outputs, anchor_points, stride_tensor
-    #         )
-    #         positive_mask, matched_boxes, matched_scores = tal_matcher(
-    #             pred_boxes, pred_cls, targets,
-    #             anchor_points, stride_tensor, img_size=1280
-    #         )
-    #         loss, loss_dict = criterion(
-    #             pred_boxes, pred_dist, pred_cls,
-    #             positive_mask, matched_boxes, matched_scores,
-    #             anchor_points, stride_tensor
-    #         )
-
-    #         val_losses['total'].append(loss.item())
-    #         val_losses['ciou'].append(loss_dict['ciou'])
-    #         val_losses['dfl'].append(loss_dict['dfl'])
-    #         val_losses['cls'].append(loss_dict['cls'])
 
     # ── Логирование ───────────────────────────────────────────
     for key in ['total', 'ciou', 'dfl', 'cls']:
@@ -142,7 +117,35 @@ for epoch in range(epochs):
     current_lr = scheduler.get_last_lr()[0]
     print(f'LR: {current_lr:.8f}')
 
-    if (epoch + 1) % 3 == 0:  
+    if (epoch + 1) % 3 == 0:
+        # ── Validation ────────────────────────────────────────────
+        model.eval()
+        val_losses = {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
+        
+        val_bar = tqdm(val_loader, desc=f'Epoch {epoch+1}/{epochs} [Val]  ')
+        with torch.no_grad():
+            for images, targets in val_bar:
+                images  = images.to(device)
+                targets = targets.to(device)
+
+                outputs = model(images)
+                pred_boxes, pred_cls, pred_dist = decode_predictions(
+                    outputs, anchor_points, stride_tensor
+                )
+                positive_mask, matched_boxes, matched_scores = tal_matcher(
+                    pred_boxes, pred_cls, targets,
+                    anchor_points, stride_tensor, img_size=1280
+                )
+                loss, loss_dict = criterion(
+                    pred_boxes, pred_dist, pred_cls,
+                    positive_mask, matched_boxes, matched_scores,
+                    anchor_points, stride_tensor
+                )
+
+                val_losses['total'].append(loss.item())
+                val_losses['ciou'].append(loss_dict['ciou'])
+                val_losses['dfl'].append(loss_dict['dfl'])
+                val_losses['cls'].append(loss_dict['cls'])  
         map_result = evaluate(
             model, val_loader,
             anchor_points, stride_tensor
@@ -151,7 +154,8 @@ for epoch in range(epochs):
         print(f'mAP@50-95: {map_result["map"]:.4f}')
 plot_losses(history=history)
 # ── Сохранение модели ──────────────────────────────────────────
-model_name = f'checkpoint_{mod}.pth'
+current = datetime.now().strftime("%d/%m/%Y-%H:%M")
+model_name = f'Yolov8{mod}_{current}_{epoch}.pth'
 print('End train')
 print(f'Save model as {model_name}')
 torch.save({
