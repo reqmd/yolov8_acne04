@@ -152,15 +152,19 @@ for epoch in range(epochs):
         )
         print(f'mAP@50:    {map_result["map_50"]:.4f}')
         print(f'mAP@50-95: {map_result["map"]:.4f}')
+
+    # ── Сохранение модели ──────────────────────────────────────────
+    if (epoch + 1) % 25 == 0:
+        current = datetime.now().strftime("%d/%m/%Y-%H:%M")
+        model_name = f'Yolov8{mod}_{current}_{epoch}.pth'
+
+        print(f'Save model as {model_name}')
+        torch.save({
+            'epoch':       epochs,
+            'model':       model.state_dict(),
+            'optimizer':   optim.state_dict(),
+            'history':     history,
+        }, model_name)
+        
 plot_losses(history=history)
-# ── Сохранение модели ──────────────────────────────────────────
-current = datetime.now().strftime("%d/%m/%Y-%H:%M")
-model_name = f'Yolov8{mod}_{current}_{epoch}.pth'
 print('End train')
-print(f'Save model as {model_name}')
-torch.save({
-    'epoch':       epochs,
-    'model':       model.state_dict(),
-    'optimizer':   optim.state_dict(),
-    'history':     history,
-}, model_name)

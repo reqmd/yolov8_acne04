@@ -1,9 +1,9 @@
 epochs: 50
-batch_size: 4
-lr: 0.0005
+batch_size: 8
+lr: 0.001
 weight_decay: 0.0005
 num_workers: 0
 pin_memory: True
 persistent_workers: False
-mod: m
+mod: s
 device: cuda
