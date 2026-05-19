@@ -3,6 +3,7 @@ from src.model.model import YoloModel
 from src.utils.data_utils import make_anchors, decode_predictions, tal_matcher
 from src.model.losses import LossFunction
 from src.utils.train_utils import evaluate, load_params, plot_losses
+from src.utils.test_utils import load_model
 
 import torch
 from torch.utils.data import DataLoader
@@ -34,13 +35,22 @@ val_loader = DataLoader(dataset=val_data,
                         pin_memory=pin_memory, 
                         persistent_workers=persistent_workers)
 
-model = YoloModel(mod=mod).to(device)
+
+
+NEED_FURTHER_EDUCATION = True
+if NEED_FURTHER_EDUCATION:
+    model, lasted_epochs = load_model(mod=mod)
+else:
+    lasted_epochs = 0
+    model = YoloModel(mod=mod).to(device)
+
+
+
 scaler = GradScaler()
 anchor_points, stride_tensor = make_anchors(img_size=1280)
 anchor_points = anchor_points.to(device)
 stride_tensor = stride_tensor.to(device)
 criterion = LossFunction(lambda_ciou=7.5, lambda_dfl=1.5, lambda_cls=1.5).to(device)
-
 optim = torch.optim.AdamW(params=model.parameters(), lr=lr, weight_decay=weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, eta_min=1e-6, T_max=epochs)
 
@@ -156,7 +166,8 @@ for epoch in range(epochs):
     # ── Сохранение модели ──────────────────────────────────────────
     if (epoch + 1) % 25 == 0:
         current = datetime.now().strftime("%d-%m-%Y_%H-%M")
-        model_name = f'Yolov8{mod}_{current}_{epoch+1}.pth'
+        
+        model_name = f'Yolov8{mod}_{current}_{epoch+ 1 + lasted_epochs}.pth'
 
         torch.save(model.state_dict(), model_name)
 

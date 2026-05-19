@@ -13,8 +13,16 @@ if __name__ == '__main__':
         print('Data already exists')
     print('=' * 60)
 
-    print('Second step: train model on processed data')
-    env = os.environ.copy()
-    env["PYTHONPATH"] = root_dir
-    subprocess.run(["python", "scripts/train.py"], cwd=root_dir, env=env, check=True)
+    train_answer = bool(input('Skip train? 0 - No, 1 - Yes'))
+    if train_answer:
+        print('Second step: train model on processed data')
+        env = os.environ.copy()
+        env["PYTHONPATH"] = root_dir
+        subprocess.run(["python", "scripts/train.py"], cwd=root_dir, env=env, check=True)
+        print('=' * 60)
+
+    testing_answer = bool(input('Need test model? 0 - No, 1 - Yes'))
+    if testing_answer:
+        print('Before testing the model, make sure that the test image is located in the data/Test folder')
+        subprocess.run(["python", "scripts/test.py"], cwd=root_dir, env=env, check=True)
 

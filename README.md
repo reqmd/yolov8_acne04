@@ -4,5 +4,18 @@
 ![GitHub | ACNE04v1](https://github.com/xpwu95/LDL)
 ![GitHub | ACNE04v2](https://github.com/AIpourlapeau/acne04v2)
 
+### Create virtual environment
+```python -m venv venv_name```
+
+### Activate virtual environment
+```source venv_name/bin/activate```
+#### *After activation, the prefix (venv_name) will appear in the terminal*
+
 ### Install reqirements
-```pip3 install -r requirements.txt```
+```pip install -r requirements.txt```
+
+### Install PyTorch from the official website depending on your device (CPU or GPU)
+![PyTorch install](https://pytorch.org/get-started/locally/)
+
+### Run main.py file
+```python main.py```

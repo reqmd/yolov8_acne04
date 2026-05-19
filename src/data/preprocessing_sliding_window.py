@@ -33,6 +33,10 @@ if not os.path.exists(os.path.join(ANNOT_PATH, 'patches.csv')):
 
 if not os.path.exists('data/Patches'):
     os.mkdir('data/Patches')
+    
+if not os.path.exists('data/Test'):
+    os.mkdir('data/Test')
+
 target_size = 1280
 step = 640
 images_list = os.listdir(CLASSIFICATION_PATH)
