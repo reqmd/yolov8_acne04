@@ -155,7 +155,7 @@ for epoch in range(epochs):
 
     # ── Сохранение модели ──────────────────────────────────────────
     if (epoch + 1) % 25 == 0:
-        current = datetime.now().strftime("%d/%m/%Y-%H:%M")
+        current = datetime.now().strftime("%d-%m-%Y-%H:%M")
         model_name = f'Yolov8{mod}_{current}_{epoch}.pth'
 
         print(f'Save model as {model_name}')
@@ -165,6 +165,6 @@ for epoch in range(epochs):
             'optimizer':   optim.state_dict(),
             'history':     history,
         }, model_name)
-        
+
 plot_losses(history=history)
 print('End train')
