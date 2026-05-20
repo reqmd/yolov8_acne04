@@ -11,6 +11,7 @@ from torch.amp import autocast, GradScaler
 import time
 from tqdm import tqdm
 from datetime import datetime
+import yaml
 
 #show_model_info(mod='s')
 YAML_ROOT = 'config/preprocessing.yaml'
@@ -35,8 +36,6 @@ val_loader = DataLoader(dataset=val_data,
                         pin_memory=pin_memory, 
                         persistent_workers=persistent_workers)
 
-
-
 NEED_FURTHER_EDUCATION = True
 if NEED_FURTHER_EDUCATION:
     model, lasted_epochs = load_model(mod=mod)
@@ -44,15 +43,13 @@ else:
     lasted_epochs = 0
     model = YoloModel(mod=mod).to(device)
 
-
-
 scaler = GradScaler()
 anchor_points, stride_tensor = make_anchors(img_size=1280)
 anchor_points = anchor_points.to(device)
 stride_tensor = stride_tensor.to(device)
 criterion = LossFunction(lambda_ciou=7.5, lambda_dfl=1.5, lambda_cls=1.5).to(device)
 optim = torch.optim.AdamW(params=model.parameters(), lr=lr, weight_decay=weight_decay)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, eta_min=1e-6, T_max=epochs)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, eta_min=5e-7, T_max=epochs)
 
 # История лоссов раздельно для train и val
 history = {
@@ -104,10 +101,8 @@ for epoch in range(epochs):
         train_losses['dfl'].append(loss_dict['dfl'])
         train_losses['cls'].append(loss_dict['cls'])
 
-    # ── Логирование ───────────────────────────────────────────
     for key in ['total', 'ciou', 'dfl', 'cls']:
         history['train'][key].append(torch.tensor(train_losses[key]).mean().item())
-        #history['val'][key].append(torch.tensor(val_losses[key]).mean().item())
 
     end_time = time.time()
     mins = int((end_time - start_time) // 60)
@@ -155,7 +150,11 @@ for epoch in range(epochs):
                 val_losses['total'].append(loss.item())
                 val_losses['ciou'].append(loss_dict['ciou'])
                 val_losses['dfl'].append(loss_dict['dfl'])
-                val_losses['cls'].append(loss_dict['cls'])  
+                val_losses['cls'].append(loss_dict['cls']) 
+                # ── Логирование ───────────────────────────────────────────
+                for key in ['total', 'ciou', 'dfl', 'cls']:
+                    history['val'][key].append(torch.tensor(val_losses[key]).mean().item())
+
         map_result = evaluate(
             model, val_loader,
             anchor_points, stride_tensor
@@ -163,13 +162,14 @@ for epoch in range(epochs):
         print(f'mAP@50:    {map_result["map_50"]:.4f}')
         print(f'mAP@50-95: {map_result["map"]:.4f}')
 
+    
+ 
     # ── Сохранение модели ──────────────────────────────────────────
     if (epoch + 1) % 25 == 0:
         current = datetime.now().strftime("%d-%m-%Y_%H-%M")
-        
         model_name = f'Yolov8{mod}_{current}_{epoch+ 1 + lasted_epochs}.pth'
-
         torch.save(model.state_dict(), model_name)
-
+with open ('config/log.yaml', 'w') as file:
+    yaml.safe_dump(history)
 plot_losses(history=history)
 print('End train')

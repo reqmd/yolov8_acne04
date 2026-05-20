@@ -32,7 +32,7 @@ def load_model(mod='s', device='cuda'):
         epoch = int(model_name.split('_')[3].split('.')[0])
         if epoch > ep:
             model_name_end = model_name
-    print(f'Выбрана модель: {model_name_end}')
+    print(f'Selected model: {model_name_end}')
     model_path = os.path.join(MODEL_PATH, model_name_end)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
@@ -47,17 +47,17 @@ def split_into_patches(img, image_name, target_size=1280, step=640):
         print('Изображения резрешения меньше 640 на 640 не могут быть обработаны')
     else:
         H_t, W_t = round_custom_decimal(H / step) * step, round_custom_decimal(W / step) * step
-    img_rsz = cv2.resize(img_arr, (H_t, W_t), interpolation=cv2.INTER_CUBIC)
+    img_rsz = cv2.resize(img_arr, (W_t, H_t), interpolation=cv2.INTER_CUBIC)
     Image.fromarray(img_rsz).save(os.path.join('data/Test', f'resized_{image_name}'))
     c = 0
     patches = []
-    for h in range(0, H_t, step):
-        for w in range(0, W_t, step):
+    for h in range(0, H_t - step, step):
+        for w in range(0, W_t - step, step):
                 x1 = min(w, max(0, W_t - target_size))
                 y1 = min(h, max(0, H_t - target_size))
                 x2 = x1 + target_size
                 y2 = y1 + target_size
-                Image.fromarray(img_rsz[y1:y2, x1:x2]).save(os.path.join('data/Patches', f'patch-{c}-{image_name}'))
+                Image.fromarray(img_rsz[y1:y2, x1:x2]).save(os.path.join('data/Test/Patches', f'patch-{c}-{image_name}'))
                 c+=1
                 patches.append((c, x1, y1)) #patch_idx, xmin, ymin
 

@@ -2,3 +2,4 @@ LICENSE
 /data
 __pycache__/
 /.pth
+/models
