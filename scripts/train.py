@@ -151,6 +151,10 @@ for epoch in range(epochs):
                 val_losses['ciou'].append(loss_dict['ciou'])
                 val_losses['dfl'].append(loss_dict['dfl'])
                 val_losses['cls'].append(loss_dict['cls']) 
+                print(f'{"Total":10} {history["val"]["total"][-1]:>10.4f} ')
+                print(f'{"CIoU":10} {history["val"]["ciou"][-1]:>10.4f} ')
+                print(f'{"DFL":10} {history["val"]["dfl"][-1]:>10.4f} ')
+                print(f'{"CLS":10} {history["val"]["cls"][-1]:>10.4f} ')
                 # ── Логирование ───────────────────────────────────────────
                 for key in ['total', 'ciou', 'dfl', 'cls']:
                     history['val'][key].append(torch.tensor(val_losses[key]).mean().item())
@@ -168,8 +172,11 @@ for epoch in range(epochs):
     if (epoch + 1) % 25 == 0:
         current = datetime.now().strftime("%d-%m-%Y_%H-%M")
         model_name = f'Yolov8{mod}_{current}_{epoch+ 1 + lasted_epochs}.pth'
+        optim_name = f'Optim_{mod}_{current}_{epoch+ 1 + lasted_epochs}.pth'
         torch.save(model.state_dict(), model_name)
+        torch.save(optim.state_dict(), optim_name)
+
 with open ('config/log.yaml', 'w') as file:
-    yaml.safe_dump(history)
+    yaml.dump(history, file)
 plot_losses(history=history)
 print('End train')
