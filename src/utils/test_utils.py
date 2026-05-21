@@ -112,5 +112,5 @@ def draw_results(image, boxes, scores, save_path='result.jpg'):
 
     image.save(save_path)
     image.show()
-    print(f'Результат сохранён: {save_path}')
+    print(f'Result saved: {save_path}')
     return image

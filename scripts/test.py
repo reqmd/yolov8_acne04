@@ -87,7 +87,7 @@ keep = nms(all_boxes, all_scores, iou_threshold)
 final_boxes = all_boxes[keep]
 final_scores = all_scores[keep]
 
-print(f'Найдено объектов: {len(final_boxes)}')
+print(f'Finded objects: {len(final_boxes)}')
 resized_image = Image.open(os.path.join(TEST_PATH, f'resized_{image}'))
 draw_results(resized_image, final_boxes, final_scores, save_path='result.jpg')
     
