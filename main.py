@@ -21,8 +21,8 @@ if __name__ == '__main__':
         subprocess.run(["python", "scripts/train.py"], cwd=root_dir, env=env, check=True)
         print('=' * 60)
 
+    print('Before testing the model, make sure that the test image is located in the data/Test folder')
     testing_answer = int(input('Need test model? 0 - No, 1 - Yes\n'))
     if testing_answer == 1:
-        print('Before testing the model, make sure that the test image is located in the data/Test folder')
         subprocess.run(["python", "scripts/test.py"], cwd=root_dir, env=env, check=True)
 
