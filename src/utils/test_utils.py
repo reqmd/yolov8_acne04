@@ -69,8 +69,8 @@ def split_into_patches(img, image_name, target_size=1280, step=640):
             seen.add(key)
             unique_patches.append((idx, x1, y1))
     num_patches = len(unique_patches)
-    print(f'Было: изображение {image_name} c разрешением {H}, {W}')
-    print(f'Стало: изображение resized_{image_name} с разрешением {H_t}, {W_t} разделено на {num_patches}')
+    print(f'Before processing: image {image_name} with resolution {H}, {W}')
+    print(f'After processing: image resized_{image_name} with resolution {H_t}, {W_t} divided into {num_patches} patches')
     return unique_patches
 
 def preprocess_patch(patch, patch_size=1280):
@@ -89,3 +89,28 @@ def predict_patch(model, patch_tensor, anchor_points, stride_tensor,
 
     results = post_process(pred_boxes, pred_cls, conf_threshold, iou_threshold)
     return results[0]
+
+def draw_results(image, boxes, scores, save_path='result.jpg'):
+    """
+    Отрисовывает боксы на изображении.
+    """
+    draw = ImageDraw.Draw(image)
+
+    for box, score in zip(boxes, scores):
+        x1, y1, x2, y2 = box.tolist()
+
+        # Цвет зависит от уверенности
+        if score > 0.7:
+            color = 'red'
+        elif score > 0.5:
+            color = 'orange'
+        else:
+            color = 'yellow'
+
+        draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
+        draw.text((x1, y1 - 12), f'{score:.2f}', fill=color)
+
+    image.save(save_path)
+    image.show()
+    print(f'Результат сохранён: {save_path}')
+    return image

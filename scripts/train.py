@@ -151,13 +151,12 @@ for epoch in range(epochs):
                 val_losses['ciou'].append(loss_dict['ciou'])
                 val_losses['dfl'].append(loss_dict['dfl'])
                 val_losses['cls'].append(loss_dict['cls']) 
+                for key in ['total', 'ciou', 'dfl', 'cls']:
+                    history['val'][key].append(torch.tensor(val_losses[key]).mean().item())
                 print(f'{"Total":10} {history["val"]["total"][-1]:>10.4f} ')
                 print(f'{"CIoU":10} {history["val"]["ciou"][-1]:>10.4f} ')
                 print(f'{"DFL":10} {history["val"]["dfl"][-1]:>10.4f} ')
-                print(f'{"CLS":10} {history["val"]["cls"][-1]:>10.4f} ')
-                # ── Логирование ───────────────────────────────────────────
-                for key in ['total', 'ciou', 'dfl', 'cls']:
-                    history['val'][key].append(torch.tensor(val_losses[key]).mean().item())
+                print(f'{"CLS":10} {history["val"]["cls"][-1]:>10.4f} ')                
 
         map_result = evaluate(
             model, val_loader,
