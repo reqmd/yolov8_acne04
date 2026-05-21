@@ -47,7 +47,9 @@ def post_process(pred_boxes, pred_cls, conf_threshold=0.25, iou_threshold=0.45):
 
 def evaluate(model, val_loader, anchor_points, stride_tensor,
              conf_threshold=0.25, iou_threshold=0.45, img_size=1280):
-    
+    """
+    Предсказание объектов на тестовой выборке
+    """
     model.eval()
     metric = MeanAveragePrecision(iou_type='bbox')
 
@@ -102,6 +104,9 @@ def evaluate(model, val_loader, anchor_points, stride_tensor,
     return result
 
 def load_params(yaml_root):
+    """
+    Выгрузка параметров из yaml файла
+    """
     with open(yaml_root, 'r') as file:
         data = yaml.safe_load(file)
     epochs = data['epochs']
@@ -116,6 +121,9 @@ def load_params(yaml_root):
     return epochs, batch_size, lr, weight_decay, num_workers, pin_memory, persistent_workers, mod, device
 
 def plot_losses(history, save_path='losses.png'):
+    """
+    Отрисовывает графики функции потерь
+    """
     epochs = range(1, len(history['train']['total']) + 1)
     fig, axes = plt.subplots(1, 3, figsize=(21, 7))
 

@@ -1,6 +1,9 @@
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 def return_transforms():
+    """
+    Возвращает трансформеры для тренировочного и тестового набора данных
+    """
     train_transfrom =  A.Compose([
         A.HorizontalFlip(p=0.5),
         A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.2),

@@ -1,14 +1,10 @@
-import albumentations as A
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import cv2 as cv
 from PIL import Image
 import os
 from decimal import Decimal
 from sklearn.model_selection import train_test_split
-
-#from utils.show_bboxes import show_bboxes
 
 TRAIN_RATIO = 0.8
 RANDOM_STATE = 101
@@ -104,5 +100,5 @@ train_df = df_patches[df_patches['filename'].isin(train_images)]
 val_df   = df_patches[df_patches['filename'].isin(val_images)]
 train_df.to_csv(os.path.join(ANNOT_PATH, 'train.csv'), index=False)
 val_df.to_csv(os.path.join(ANNOT_PATH, 'val.csv'),   index=False)
-print(f'Train: {len(train_images)} изображений')
-print(f'Val:   {len(val_images)} изображений')
+print(f'Train: {len(train_images)} images')
+print(f'Val:   {len(val_images)} images')

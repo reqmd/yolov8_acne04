@@ -11,10 +11,6 @@ else:
     device = 'cpu'
 
 def dfl_loss(pred, target, reg_max=16):
-    """
-    pred:   (M, 64) — сырые логиты позитивных ячеек
-    target: (M, 4)  — расстояния ltrb в бинах
-    """
     M = pred.shape[0]
     pred   = pred.view(M * 4, reg_max)    # (M*4, 16)
     target = target.reshape(-1)           # (M*4,)

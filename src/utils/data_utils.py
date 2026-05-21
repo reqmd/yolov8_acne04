@@ -116,21 +116,26 @@ def xywh2xyxy(boxes, img_size):
 
 def tal_matcher(pred_boxes, pred_cls, targets, anchor_points,
                 stride_tensor, img_size, topk=10, alpha=0.5, beta=6.0):
-    
+    """
+    pred_boxes:    (B, N, 4)  — декодированные боксы в пикселях
+    pred_cls:      (B, 1, N)  — сырые логиты cls
+    targets:       (M, 6)     — [batch_idx, cls, x, y, w, h]
+    anchor_points: (N, 2)     — центры ячеек (в ячейках)
+    stride_tensor: (N, 1)     — stride каждого anchor
+    topk:          сколько лучших anchors брать на объект
+    """
     B = pred_boxes.shape[0]
     N = anchor_points.shape[0]
-    device = pred_boxes.device  # берём device от pred_boxes
+    device = pred_boxes.device
 
     positive_mask  = torch.zeros(B, N, dtype=torch.bool,    device=device)
     matched_boxes  = torch.zeros(B, N, 4,                   device=device)
     matched_scores = torch.zeros(B, N,                      device=device)
-
-    # Переносим anchor points на нужный device
     anc_px = (anchor_points * stride_tensor).to(device)  # (N, 2)
 
     for b in range(B):
         obj_mask  = targets[:, 0] == b
-        obj_boxes = targets[obj_mask, 2:]  # уже на device т.к. targets перенесён
+        obj_boxes = targets[obj_mask, 2:]
 
         if len(obj_boxes) == 0:
             continue

@@ -31,7 +31,7 @@ if not os.path.exists(TEST_PATH):
     os.mkdir(TEST_PATH)
 
 if os.listdir(TEST_PATH) == []:
-    raise FileNotFoundError('ВНИМАНИЕ! ПАПКА С ТЕСТОВЫМИ ФОТО ПУСТА')
+    raise FileNotFoundError('WARNING!!! TEST DIRECTORY IS EMPTY')
 
 target_size = 1280
 step = 640

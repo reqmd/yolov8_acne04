@@ -53,6 +53,17 @@ def yolo_to_bbox(yolo_coords, img_width, img_height):
     return xmin, ymin, xmax, ymax
 
 def show_bboxes(num, img_arr, df_annot):
+    """
+    Показывает ограничивающие рамки на тестовых фото
+
+    Параметры:
+    num: индекс изображения 
+    img_arr: изображение в формате массива numpy
+    df_annot: датафрейм с аннотацией
+
+    Возвращает:
+    num_arr: изображения с размеченными ограничивающими рамками
+    """
     frag = df_annot[df_annot['id_images'] == num]     
     H, W, C = img_arr.shape       
     for i in range(len(df_annot[df_annot['id_images'] == num])):

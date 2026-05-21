@@ -13,7 +13,6 @@ from tqdm import tqdm
 from datetime import datetime
 import yaml
 
-#show_model_info(mod='s')
 YAML_ROOT = 'config/preprocessing.yaml'
 epochs, batch_size, lr, weight_decay, num_workers, pin_memory, persistent_workers, mod, device = load_params(YAML_ROOT)
 
@@ -50,8 +49,6 @@ stride_tensor = stride_tensor.to(device)
 criterion = LossFunction(lambda_ciou=7.5, lambda_dfl=1.5, lambda_cls=1.5).to(device)
 optim = torch.optim.AdamW(params=model.parameters(), lr=lr, weight_decay=weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, eta_min=5e-7, T_max=epochs)
-
-# История лоссов раздельно для train и val
 history = {
     'train': {'total': [], 'ciou': [], 'dfl': [], 'cls': []},
     'val':   {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
@@ -61,8 +58,6 @@ accumulation_steps = 4
 
 for epoch in range(epochs):
     start_time = time.time()
-
-    # ── Train ─────────────────────────────────────────────────
     model.train()
     train_losses = {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
 
@@ -100,30 +95,24 @@ for epoch in range(epochs):
         train_losses['ciou'].append(loss_dict['ciou'])
         train_losses['dfl'].append(loss_dict['dfl'])
         train_losses['cls'].append(loss_dict['cls'])
-
     for key in ['total', 'ciou', 'dfl', 'cls']:
         history['train'][key].append(torch.tensor(train_losses[key]).mean().item())
-
     end_time = time.time()
     mins = int((end_time - start_time) // 60)
     secs = int((end_time - start_time) % 60)
-
     print('=' * 60)
     print(f'Epoch {epoch+1}/{epochs}  |  {mins}м {secs}с')
-    print(f'{"":10} {"Train":>10} ') # {"Val":>10}
-    print(f'{"Total":10} {history["train"]["total"][-1]:>10.4f} ') # {history["val"]["total"][-1]:>10.4f}
-    print(f'{"CIoU":10} {history["train"]["ciou"][-1]:>10.4f} ') # {history["val"]["ciou"][-1]:>10.4f}
-    print(f'{"DFL":10} {history["train"]["dfl"][-1]:>10.4f} ') # {history["val"]["dfl"][-1]:>10.4f}
-    print(f'{"CLS":10} {history["train"]["cls"][-1]:>10.4f} ') # {history["val"]["cls"][-1]:>10.4f}
+    print(f'{"":10} {"Train":>10} ')
+    print(f'{"Total":10} {history["train"]["total"][-1]:>10.4f} ') 
+    print(f'{"CIoU":10} {history["train"]["ciou"][-1]:>10.4f} ') 
+    print(f'{"DFL":10} {history["train"]["dfl"][-1]:>10.4f} ') 
+    print(f'{"CLS":10} {history["train"]["cls"][-1]:>10.4f} ') 
     print('=' * 60)
     scheduler.step()
-
-    # Логируем текущий lr
     current_lr = scheduler.get_last_lr()[0]
     print(f'LR: {current_lr:.8f}')
 
     if (epoch + 1) % 3 == 0:
-        # ── Validation ────────────────────────────────────────────
         model.eval()
         val_losses = {'total': [], 'ciou': [], 'dfl': [], 'cls': []}
         
@@ -165,9 +154,6 @@ for epoch in range(epochs):
         print(f'mAP@50:    {map_result["map_50"]:.4f}')
         print(f'mAP@50-95: {map_result["map"]:.4f}')
 
-    
- 
-    # ── Сохранение модели ──────────────────────────────────────────
     if (epoch + 1) % 25 == 0:
         current = datetime.now().strftime("%d-%m-%Y_%H-%M")
         model_name = f'Yolov8{mod}_{current}_{epoch+ 1 + lasted_epochs}.pth'

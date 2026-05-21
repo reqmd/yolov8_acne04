@@ -20,7 +20,7 @@ class YoloModel(nn.Module):
             self.model_config = yaml.safe_load(file)
         keys = self.model_config['scales'].keys()
         if mod not in keys:
-            raise ValueError(f'Неверный режим {mod}, доступные: {list(keys)}')
+            raise ValueError(f'Unknown mod {mod}, available: {list(keys)}')
         self.depth, self.width, self.max_ch = self.model_config['scales'][mod]
         self.backbone = self.__build_backbone__()
         self.head = self.__build_head__()

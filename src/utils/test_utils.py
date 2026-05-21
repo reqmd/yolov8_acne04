@@ -10,6 +10,9 @@ import os
 import cv2
 
 def round_custom_decimal(x, threshold=0.5):
+    """
+    Округляет значения с определенным порогом десятичной части
+    """
     x_dec = Decimal(str(x))
     integer_part = int(x_dec)
     fractional_part = x_dec - integer_part
@@ -19,6 +22,9 @@ def round_custom_decimal(x, threshold=0.5):
         return integer_part
     
 def load_model(mod='s', device='cuda'):
+    """
+    Загружает модель определенного режима с наибольшим числом эпох
+    """
     model = YoloModel(mod=mod).to(device)
     models_list = os.listdir('models')
     models_with_mod = []
@@ -39,12 +45,15 @@ def load_model(mod='s', device='cuda'):
     return model, ep
 
 def split_into_patches(img, image_name, target_size=1280, step=640):
+    """
+    Разделение изображения на патчи
+    """
     img_arr = np.array(img)
     H, W, C = img_arr.shape
     if H >= 640 and H <= 1280 and W >= 640 and W <= 1280:
         H_t, W_t = 1280, 1280
     elif H <= 640 and W <= 640:
-        print('Изображения резрешения меньше 640 на 640 не могут быть обработаны')
+        print('Images with a resolution of less than 640 by 640 cannot be processed')
     else:
         H_t, W_t = round_custom_decimal(H / step) * step, round_custom_decimal(W / step) * step
     img_rsz = cv2.resize(img_arr, (W_t, H_t), interpolation=cv2.INTER_CUBIC)
@@ -74,6 +83,9 @@ def split_into_patches(img, image_name, target_size=1280, step=640):
     return unique_patches
 
 def preprocess_patch(patch, patch_size=1280):
+    """
+    Преобразования патча в тензор
+    """
     img = patch.resize((patch_size, patch_size))
     img = np.array(img).astype(np.float32) / 255.0
     img = torch.from_numpy(img).permute(2, 0, 1)  # (3, H, W)
@@ -81,6 +93,9 @@ def preprocess_patch(patch, patch_size=1280):
 
 def predict_patch(model, patch_tensor, anchor_points, stride_tensor,
                   conf_threshold=0.25, iou_threshold=0.45, device='cuda'):
+    """
+    Предсказание объектов на патче
+    """
     patch_tensor = patch_tensor.to(device)
     with torch.no_grad():
         outputs = model(patch_tensor)

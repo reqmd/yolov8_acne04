@@ -2,6 +2,12 @@ from src.model.model import YoloModel
 from torchinfo import summary
 
 def show_model_info(mod = 'n'):
+    """
+    Показывает параметры модели с помощью torchinfo.summary
+
+    Параметры:
+    mod: режим YOLO
+    """
     model = YoloModel(mod=mod).to('cuda')
     summary(model = model, input_size=(1, 3, 1280, 1280))
 
