@@ -37,7 +37,7 @@ val_loader = DataLoader(dataset=val_data,
 
 NEED_FURTHER_EDUCATION = True
 if NEED_FURTHER_EDUCATION:
-    model, lasted_epochs = load_model(mod=mod)
+    model, optim, lasted_epochs = load_model({'lr':lr, 'weight_decay':weight_decay}, mod=mod)
 else:
     lasted_epochs = 0
     model = YoloModel(mod=mod).to(device)
@@ -46,8 +46,9 @@ scaler = GradScaler()
 anchor_points, stride_tensor = make_anchors(img_size=1280)
 anchor_points = anchor_points.to(device)
 stride_tensor = stride_tensor.to(device)
-criterion = LossFunction(lambda_ciou=7.5, lambda_dfl=1.5, lambda_cls=1.5).to(device)
-optim = torch.optim.AdamW(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+if not NEED_FURTHER_EDUCATION:
+    optim = torch.optim.AdamW(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+criterion = LossFunction(lambda_ciou=7.5, lambda_dfl=1.5, lambda_cls=1.0).to(device)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, eta_min=5e-7, T_max=epochs)
 history = {
     'train': {'total': [], 'ciou': [], 'dfl': [], 'cls': []},

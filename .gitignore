@@ -3,3 +3,9 @@ LICENSE
 __pycache__/
 /.pth
 /models
+/optims
+losses.png
+result_0.4.jpg
+result_0.5.jpg
+result_0.6.jpg
+result_0.7.jpg

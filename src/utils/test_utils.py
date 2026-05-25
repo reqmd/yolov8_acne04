@@ -21,7 +21,7 @@ def round_custom_decimal(x, threshold=0.5):
     else:
         return integer_part
     
-def load_model(mod='s', device='cuda'):
+def load_model(optim_params = None, mod='s', device='cuda'):
     """
     Загружает модель определенного режима с наибольшим числом эпох
     """
@@ -42,7 +42,17 @@ def load_model(mod='s', device='cuda'):
     model_path = os.path.join(MODEL_PATH, model_name_end)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
-    return model, ep
+    optim = None
+    if not optim_params == None:
+        lr = optim_params['lr']
+        weight_decay = optim_params['weight_decay']
+        optim = torch.optim.AdamW(params=model.parameters(), lr=lr, weight_decay=weight_decay)
+        # optim_list = os.listdir('optims')
+        # state_dict = torch.load(os.path.join('optims', optim_list[0]))
+        # optim.load_state_dict(state_dict)
+        # optim.param_groups['lr'] = lr
+        # print(f'Loaded opimizer: {optim_list[0]}')
+    return model, optim, ep
 
 def split_into_patches(img, image_name, target_size=1280, step=640):
     """
@@ -92,7 +102,7 @@ def preprocess_patch(patch, patch_size=1280):
     return img.unsqueeze(0) # (1, 3, H, W)
 
 def predict_patch(model, patch_tensor, anchor_points, stride_tensor,
-                  conf_threshold=0.25, iou_threshold=0.45, device='cuda'):
+                  conf_threshold=0.4, iou_threshold=0.45, device='cuda'):
     """
     Предсказание объектов на патче
     """
@@ -121,9 +131,9 @@ def draw_results(image, boxes, scores, save_path='result.jpg'):
             color = 'orange'
         else:
             color = 'yellow'
-
-        draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
-        draw.text((x1, y1 - 12), f'{score:.2f}', fill=color)
+        if score > 0.33:
+            draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
+            draw.text((x1, y1 - 12), f'{score:.2f}', fill=color)
 
     image.save(save_path)
     image.show()

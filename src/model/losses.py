@@ -26,6 +26,14 @@ def dfl_loss(pred, target, reg_max=16):
     )
     return loss.mean()
 
+def focal_bce_loss(pred, target, n_pos, focal_gamma=1.5, focal_alpha=1):
+        bce = F.binary_cross_entropy_with_logits(
+            pred, target, reduction='none'
+        )
+        p  = pred.sigmoid()
+        pt = torch.where(target > 0, p, 1 - p)
+        focal_weight = focal_alpha * (1 - pt) ** focal_gamma
+        return (focal_weight * bce).sum() / n_pos
 
 class LossFunction(nn.Module):
     def __init__(self, lambda_ciou=7.5, lambda_dfl=1.5, lambda_cls=0.5):
@@ -57,18 +65,19 @@ class LossFunction(nn.Module):
             loss_dfl = dfl_loss(pred_dist_pos, target_dist_pos)
         else:
             loss_dfl = torch.tensor(0.0, device=device)
-
+        
         # ── CLS Loss ──────────────────────────────────────────
+        n_pos = positive_mask.sum().clamp(min=1).float()
+
         with torch.amp.autocast(device_type='cuda'):
             cls_target = torch.zeros_like(pred_cls[:, 0, :], dtype=torch.float32)
             if positive_mask.any():
                 cls_target[positive_mask] = matched_scores[positive_mask].float()
-            loss_cls = F.binary_cross_entropy_with_logits(
+            loss_cls = focal_bce_loss(
                 pred_cls[:, 0, :].float(),
                 cls_target,
-                reduction='mean'
+                n_pos
             )
-
         # ── Проверка на NaN ──────────────────────────────────
         if torch.isnan(loss_cls):
             loss_cls = torch.tensor(0.0, device=device)
