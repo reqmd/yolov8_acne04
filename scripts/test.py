@@ -2,6 +2,7 @@ from src.utils.test_utils import load_model, split_into_patches, predict_patch, 
 from src.utils.data_utils import make_anchors
 from src.utils.train_utils import load_params, evaluate, decode_predictions
 from src.data.dataset import AcneDataset, collate_fn
+from src.data.download_model import download_model
 
 import os
 from PIL import Image
@@ -9,6 +10,7 @@ import torch
 from torchvision.ops import nms
 from torch.utils.data import DataLoader
 import numpy as np
+import shutil
 
 def analyze_predictions(model, val_loader, anchor_points, stride_tensor,
                         device='cuda', conf_threshold=0.25):
@@ -46,6 +48,8 @@ TEST_PATCHES_PATH = 'data/Test/Patches'
 YAML_ROOT = 'config/preprocessing.yaml'
 
 device = 'cuda'
+if not os.path.exists('models'):
+    download_model()
 model, _, _ = load_model()
 
 epochs, batch_size, lr, weight_decay, num_workers, pin_memory, persistent_workers, mod, device = load_params(YAML_ROOT)
@@ -73,8 +77,9 @@ for entry in os.listdir(TEST_PATH):
         image = entry
         break
 
-if not os.path.exists(TEST_PATCHES_PATH):
-    os.mkdir(TEST_PATCHES_PATH)
+if os.path.exists(TEST_PATCHES_PATH):
+    shutil.rmtree(TEST_PATCHES_PATH)
+os.mkdir(TEST_PATCHES_PATH)
 
 img = Image.open(os.path.join(TEST_PATH, image))
 patches = split_into_patches(img = img, image_name=image, target_size=target_size, step=step)

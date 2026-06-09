@@ -78,7 +78,7 @@ class LossFunction(nn.Module):
                 cls_target,
                 n_pos
             )
-        # ── Проверка на NaN ──────────────────────────────────
+            
         if torch.isnan(loss_cls):
             loss_cls = torch.tensor(0.0, device=device)
 

@@ -1,5 +1,6 @@
 import subprocess
 import os
+from src.data.download_final_data import download_data
 
 DATA_PATH = 'data'
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -7,12 +8,13 @@ root_dir = os.path.dirname(os.path.abspath(__file__))
 if __name__ == '__main__':
     print('First step: download and processing data')
     if not os.path.exists(os.path.join(DATA_PATH, 'Annotations')) and not os.path.exists(os.path.join(DATA_PATH, 'Patches')):
-        subprocess.run(["python", "src/data/download_done_data.py"], check = True)
-        subprocess.run(["python", "src/data/preprocessing_sliding_window.py"], check = True)
+        download_data()
+        # subprocess.run(["python", "src/data/download_done_data.py"], check = True)
+        # subprocess.run(["python", "src/data/preprocessing_sliding_window.py"], check = True)
     else:
         print('Data already exists')
     print('=' * 60)
-
+    
     train_answer = int(input('Skip train? 0 - No, 1 - Yes\n'))
     env = os.environ.copy()
     env["PYTHONPATH"] = root_dir
